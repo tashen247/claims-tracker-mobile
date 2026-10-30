@@ -1,0 +1,36 @@
+{
+  "name": "claims-tracker-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Insurance claims tracker: Expo React Native app, Fastify API, Postgres, S3 and AWS CDK.",
+  "license": "MIT",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @claims/api --filter @claims/mobile dev",
+    "dev:api": "pnpm --filter @claims/api dev",
+    "dev:mobile": "pnpm --filter @claims/mobile dev",
+    "db:migrate": "pnpm --filter @claims/api db:migrate",
+    "db:seed": "pnpm --filter @claims/api db:seed",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
+    "build": "pnpm -r build",
+    "synth": "pnpm --filter @claims/infra synth"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@vitest/coverage-v8": "^3.2.7",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^3.2.7"
+  }
+}
