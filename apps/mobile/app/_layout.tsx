@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ApiError, bootstrapSession } from '@/api';
 import { useAuthStore } from '@/auth/store';
@@ -32,8 +33,10 @@ function RootNavigator() {
     void bootstrapSession();
   }, []);
 
-  if (status === 'loading') return <LoadingState label="Starting" />;
+  const signedIn = status === 'signedIn';
 
+  // The navigator has to stay mounted while the session loads. Returning only a
+  // spinner makes Expo Router treat "/" as an unmatched route.
   return (
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
@@ -44,13 +47,18 @@ function RootNavigator() {
           contentStyle: { backgroundColor: colors.background },
         }}
       >
-        <Stack.Protected guard={status === 'signedIn'}>
+        <Stack.Protected guard={signedIn}>
           <Stack.Screen name="(app)" options={{ headerShown: false }} />
         </Stack.Protected>
-        <Stack.Protected guard={status !== 'signedIn'}>
+        <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
+      {status === 'loading' ? (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}>
+          <LoadingState label="Starting" />
+        </View>
+      ) : null}
     </>
   );
 }

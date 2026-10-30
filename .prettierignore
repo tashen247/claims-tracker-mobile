@@ -5,3 +5,4 @@ pnpm-lock.yaml
 apps/api/drizzle/meta
 apps/mobile/.expo
 infra/cdk.out
+apps/mobile/expo-env.d.ts
