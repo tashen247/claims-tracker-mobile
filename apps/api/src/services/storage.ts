@@ -39,6 +39,9 @@ export class S3PhotoStorage implements PhotoStorage {
       region: config.AWS_REGION,
       endpoint: config.S3_PUBLIC_ENDPOINT ?? config.S3_ENDPOINT,
       forcePathStyle: config.S3_FORCE_PATH_STYLE,
+      // Without this the SDK pins a CRC32 of an empty body into pre-signed PUT URLs,
+      // and S3 rejects every real upload with a checksum mismatch.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
       ...(config.S3_ENDPOINT
         ? { credentials: { accessKeyId: 'test', secretAccessKey: 'test' } }
         : {}),

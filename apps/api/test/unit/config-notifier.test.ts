@@ -59,6 +59,8 @@ describe('storage', () => {
     expect(upload.url).toMatch(/^http:\/\/192\.168\.1\.10:4566\/bucket\/claims\/x\/y\.jpg\?/);
     expect(upload.url).toContain('X-Amz-Signature');
     expect(upload.headers['Content-Type']).toBe('image/jpeg');
+    // A checksum baked into the URL would make S3 reject any non-empty upload.
+    expect(upload.url).not.toMatch(/x-amz-checksum|x-amz-sdk-checksum/i);
     expect(await storage.presignDownload('claims/x/y.jpg')).toContain('X-Amz-Expires=900');
   });
 });
