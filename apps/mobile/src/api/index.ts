@@ -1,5 +1,6 @@
 import { API_URL } from '../config';
 import { useAuthStore } from '../auth/store';
+import { uploadFile } from '../lib/upload-file';
 import { ApiError, createApiClient } from './client';
 
 export { ApiError } from './client';
@@ -7,6 +8,7 @@ export { ApiError } from './client';
 /** App-wide API client wired to the auth store for bearer tokens and silent refresh. */
 export const api = createApiClient({
   baseUrl: API_URL,
+  uploadFile,
   tokens: {
     getAccessToken: () => useAuthStore.getState().accessToken,
     async refresh() {

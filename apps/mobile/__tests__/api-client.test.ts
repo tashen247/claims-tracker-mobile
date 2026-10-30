@@ -126,4 +126,47 @@ describe('api client', () => {
       client.uploadToSignedUrl('https://s3.test/put', {}, 'file:///a.jpg'),
     ).rejects.toMatchObject({ code: 'UPLOAD_FAILED', status: 403 });
   });
+
+  it('uses the injected native uploader and checks its status', async () => {
+    const uploadFile = jest.fn().mockResolvedValueOnce(200).mockResolvedValueOnce(400);
+    const client = createApiClient({
+      baseUrl: 'http://api.test',
+      fetchImpl: jest.fn(),
+      uploadFile,
+      tokens: { getAccessToken: () => 'a', refresh: jest.fn(), onSessionExpired: jest.fn() },
+    });
+    await client.uploadToSignedUrl(
+      'https://s3.test/put',
+      { 'Content-Type': 'image/jpeg' },
+      'file:///a.jpg',
+    );
+    expect(uploadFile).toHaveBeenCalledWith('https://s3.test/put', 'file:///a.jpg', {
+      'Content-Type': 'image/jpeg',
+    });
+    await expect(
+      client.uploadToSignedUrl('https://s3.test/put', {}, 'file:///a.jpg'),
+    ).rejects.toMatchObject({
+      code: 'UPLOAD_FAILED',
+      retryable: false,
+    });
+  });
+
+  it('times out hung uploads and requests with a retryable error', async () => {
+    const never = () => new Promise<never>(() => undefined);
+    const client = createApiClient({
+      baseUrl: 'http://api.test',
+      fetchImpl: jest.fn(never),
+      uploadFile: jest.fn(never),
+      requestTimeoutMs: 20,
+      uploadTimeoutMs: 20,
+      tokens: { getAccessToken: () => 'a', refresh: jest.fn(), onSessionExpired: jest.fn() },
+    });
+    await expect(
+      client.uploadToSignedUrl('https://s3.test/put', {}, 'file:///a.jpg'),
+    ).rejects.toMatchObject({
+      code: 'TIMEOUT',
+      retryable: true,
+    });
+    await expect(client.listPolicies()).rejects.toMatchObject({ code: 'TIMEOUT', retryable: true });
+  });
 });

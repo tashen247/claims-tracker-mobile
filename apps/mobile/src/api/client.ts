@@ -42,10 +42,32 @@ export interface TokenProvider {
   onSessionExpired(): void;
 }
 
+/** Uploads a local file to a URL with PUT and returns the HTTP status. */
+export type UploadFile = (
+  url: string,
+  localUri: string,
+  headers: Record<string, string>,
+) => Promise<number>;
+
 export interface ApiClientOptions {
   baseUrl: string;
   tokens: TokenProvider;
   fetchImpl?: typeof fetch;
+  uploadFile?: UploadFile;
+  /** Per-request timeout for API calls. */
+  requestTimeoutMs?: number;
+  /** Timeout for a single photo upload. */
+  uploadTimeoutMs?: number;
+}
+
+/** Rejects with a retryable error if the promise doesn't settle in time, so a hung request
+ * can never block the offline queue. */
+export function withTimeout<T>(promise: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new ApiError(408, 'TIMEOUT', `${what} timed out`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 type RequestOptions = {
@@ -55,7 +77,21 @@ type RequestOptions = {
   auth?: boolean;
 };
 
-export function createApiClient({ baseUrl, tokens, fetchImpl = fetch }: ApiClientOptions) {
+export function createApiClient({
+  baseUrl,
+  tokens,
+  fetchImpl = fetch,
+  uploadFile,
+  requestTimeoutMs = 20_000,
+  uploadTimeoutMs = 120_000,
+}: ApiClientOptions) {
+  const fetchUpload: UploadFile = async (url, localUri, headers) => {
+    const blob = await (await fetchImpl(localUri)).blob();
+    const response = await fetchImpl(url, { method: 'PUT', headers, body: blob });
+    return response.status;
+  };
+  const doUpload = uploadFile ?? fetchUpload;
+
   let refreshing: Promise<string | null> | null = null;
 
   // Single-flight refresh so parallel 401s trigger only one rotation.
@@ -71,12 +107,17 @@ export function createApiClient({ baseUrl, tokens, fetchImpl = fetch }: ApiClien
     if (options.body !== undefined) headers['content-type'] = 'application/json';
     if (options.auth !== false && accessToken) headers.authorization = `Bearer ${accessToken}`;
     try {
-      return await fetchImpl(`${baseUrl}${path}`, {
-        method: options.method ?? 'GET',
-        headers,
-        body: options.body === undefined ? undefined : JSON.stringify(options.body),
-      });
+      return await withTimeout(
+        fetchImpl(`${baseUrl}${path}`, {
+          method: options.method ?? 'GET',
+          headers,
+          body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        }),
+        requestTimeoutMs,
+        'Request',
+      );
     } catch (error) {
+      if (error instanceof ApiError) throw error;
       throw new ApiError(0, 'NETWORK_ERROR', 'Could not reach the server', error);
     }
   }
@@ -153,29 +194,19 @@ export function createApiClient({ baseUrl, tokens, fetchImpl = fetch }: ApiClien
       request<Claim>(`/v1/claims/${id}/status`, { method: 'PATCH', body }),
     /** Uploads a local file straight to S3 using a pre-signed URL. */
     async uploadToSignedUrl(url: string, headers: Record<string, string>, localUri: string) {
-      let blob: Blob;
+      let status: number;
       try {
-        blob = await (await fetchImpl(localUri)).blob();
-      } catch (error) {
-        throw new ApiError(
-          400,
-          'PHOTO_UNREADABLE',
-          'The photo could not be read from the device',
-          error,
+        status = await withTimeout(
+          doUpload(url, localUri, headers),
+          uploadTimeoutMs,
+          'Photo upload',
         );
-      }
-      let response: Response;
-      try {
-        response = await fetchImpl(url, { method: 'PUT', headers, body: blob });
       } catch (error) {
+        if (error instanceof ApiError) throw error;
         throw new ApiError(0, 'NETWORK_ERROR', 'Photo upload failed', error);
       }
-      if (!response.ok) {
-        throw new ApiError(
-          response.status,
-          'UPLOAD_FAILED',
-          `Photo upload failed (${response.status})`,
-        );
+      if (status < 200 || status >= 300) {
+        throw new ApiError(status, 'UPLOAD_FAILED', `Photo upload failed (${status})`);
       }
     },
   };
