@@ -129,10 +129,10 @@ export function createApiClient({ baseUrl, tokens, fetchImpl = fetch }: ApiClien
     unregisterPushToken: (token: string) =>
       request<void>('/v1/me/push-tokens', { method: 'DELETE', body: { token } }),
     listPolicies: () => request<PolicyListResponse>('/v1/policies'),
-    listClaims: (params: { status?: ClaimStatus; cursor?: string; limit?: number } = {}) => {
+    listClaims: (params: { status?: ClaimStatus; pageToken?: string; limit?: number } = {}) => {
       const query = new URLSearchParams();
       if (params.status) query.set('status', params.status);
-      if (params.cursor) query.set('cursor', params.cursor);
+      if (params.pageToken) query.set('pageToken', params.pageToken);
       if (params.limit) query.set('limit', String(params.limit));
       const qs = query.toString();
       return request<ClaimListResponse>(`/v1/claims${qs ? `?${qs}` : ''}`);

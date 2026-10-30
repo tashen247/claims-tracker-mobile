@@ -39,8 +39,21 @@ const envSchema = z.object({
 
 export type Config = z.infer<typeof envSchema>;
 
+/**
+ * On ECS the database credentials arrive as separate secrets (DB_HOST, DB_USER, DB_PASSWORD...);
+ * assemble them into DATABASE_URL so the rest of the app only knows one setting.
+ */
+export function resolveDatabaseUrl(env: NodeJS.ProcessEnv): string | undefined {
+  if (env.DATABASE_URL) return env.DATABASE_URL;
+  const { DB_HOST, DB_PORT = '5432', DB_NAME = 'claims', DB_USER, DB_PASSWORD } = env;
+  if (!DB_HOST || !DB_USER || !DB_PASSWORD) return undefined;
+  const user = encodeURIComponent(DB_USER);
+  const password = encodeURIComponent(DB_PASSWORD);
+  return `postgres://${user}:${password}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = envSchema.safeParse(env);
+  const parsed = envSchema.safeParse({ ...env, DATABASE_URL: resolveDatabaseUrl(env) });
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('\n');
     throw new Error(`Invalid environment configuration:\n${issues}`);

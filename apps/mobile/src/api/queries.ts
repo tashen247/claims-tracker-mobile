@@ -15,9 +15,9 @@ export function usePolicies() {
 export function useClaims(status?: ClaimStatus) {
   return useInfiniteQuery({
     queryKey: queryKeys.claims(status),
-    queryFn: ({ pageParam }) => api.listClaims({ status, cursor: pageParam, limit: 20 }),
+    queryFn: ({ pageParam }) => api.listClaims({ status, pageToken: pageParam, limit: 20 }),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    getNextPageParam: (last) => last.nextPageToken ?? undefined,
   });
 }
 

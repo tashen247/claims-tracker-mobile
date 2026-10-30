@@ -46,6 +46,21 @@ describe('platform', () => {
     );
   });
 
+  it('allows cross-origin PATCH with an Idempotency-Key header (preflight)', async () => {
+    const res = await ctx.app.inject({
+      method: 'OPTIONS',
+      url: '/v1/claims/6f1c1f9e-8a3b-4c2d-9e1f-0a1b2c3d4e5f/status',
+      headers: {
+        origin: 'http://localhost:8081',
+        'access-control-request-method': 'PATCH',
+        'access-control-request-headers': 'authorization,content-type,idempotency-key',
+      },
+    });
+    expect(res.statusCode).toBe(204);
+    expect(res.headers['access-control-allow-methods']).toContain('PATCH');
+    expect(String(res.headers['access-control-allow-headers'])).toContain('idempotency-key');
+  });
+
   it('returns JSON 404s for unknown routes', async () => {
     const res = await ctx.app.inject({ method: 'GET', url: '/v1/nope' });
     expect(res.statusCode).toBe(404);

@@ -7,7 +7,7 @@ import {
   stableStringify,
   verifyPassword,
 } from '../../src/lib/crypto';
-import { decodeCursor, encodeCursor } from '../../src/lib/cursor';
+import { decodePageToken, encodePageToken } from '../../src/lib/page-token';
 
 describe('crypto helpers', () => {
   it('hashes and verifies passwords', async () => {
@@ -32,20 +32,20 @@ describe('crypto helpers', () => {
   });
 });
 
-describe('cursor', () => {
+describe('pageToken', () => {
   it('round-trips', () => {
-    const cursor = {
+    const pageToken = {
       createdAt: new Date('2026-03-01T10:00:00.000Z'),
       id: '6f1c1f9e-8a3b-4c2d-9e1f-0a1b2c3d4e5f',
     };
-    expect(decodeCursor(encodeCursor(cursor))).toEqual(cursor);
+    expect(decodePageToken(encodePageToken(pageToken))).toEqual(pageToken);
   });
 
   it('rejects garbage', () => {
-    expect(decodeCursor('not-a-cursor')).toBeNull();
-    expect(decodeCursor(Buffer.from('2026-01-01|nope').toString('base64url'))).toBeNull();
+    expect(decodePageToken('not-a-pageToken')).toBeNull();
+    expect(decodePageToken(Buffer.from('2026-01-01|nope').toString('base64url'))).toBeNull();
     expect(
-      decodeCursor(
+      decodePageToken(
         Buffer.from('bad-date|6f1c1f9e-8a3b-4c2d-9e1f-0a1b2c3d4e5f').toString('base64url'),
       ),
     ).toBeNull();

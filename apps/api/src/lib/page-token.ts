@@ -1,14 +1,14 @@
-/** Opaque keyset-pagination cursor over (created_at DESC, id DESC). */
-export interface Cursor {
+/** Opaque keyset-pagination token over (created_at DESC, id DESC). */
+export interface PageToken {
   createdAt: Date;
   id: string;
 }
 
-export function encodeCursor(cursor: Cursor): string {
-  return Buffer.from(`${cursor.createdAt.toISOString()}|${cursor.id}`).toString('base64url');
+export function encodePageToken(token: PageToken): string {
+  return Buffer.from(`${token.createdAt.toISOString()}|${token.id}`).toString('base64url');
 }
 
-export function decodeCursor(value: string): Cursor | null {
+export function decodePageToken(value: string): PageToken | null {
   try {
     const [iso, id] = Buffer.from(value, 'base64url').toString('utf8').split('|');
     if (!iso || !id) return null;

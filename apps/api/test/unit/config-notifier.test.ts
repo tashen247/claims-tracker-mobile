@@ -16,6 +16,19 @@ describe('config', () => {
     expect(() => loadConfig({ PORT: 'abc' })).toThrow(/PORT/);
   });
 
+  it('builds DATABASE_URL from separate ECS secrets', () => {
+    const config = loadConfig({
+      DB_HOST: 'db.internal',
+      DB_USER: 'claims',
+      DB_PASSWORD: 'p@ss/word',
+      DB_NAME: 'claims',
+    });
+    expect(config.DATABASE_URL).toBe('postgres://claims:p%40ss%2Fword@db.internal:5432/claims');
+    expect(
+      loadConfig({ DATABASE_URL: 'postgres://a:b@c:5432/d', DB_HOST: 'ignored' }).DATABASE_URL,
+    ).toBe('postgres://a:b@c:5432/d');
+  });
+
   it('refuses the development JWT secret in production', () => {
     expect(() => loadConfig({ NODE_ENV: 'production' })).toThrow(/JWT_SECRET/);
   });

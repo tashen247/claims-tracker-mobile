@@ -28,6 +28,7 @@ function draftLabel(draft: QueuedClaim): string {
   if (draft.needsAttention) return 'Needs attention';
   if (draft.state === 'syncing') return 'Sending…';
   if (draft.serverClaimId) return 'Uploading photos';
+  if (draft.attempts > 0) return 'Waiting for connection';
   return 'Waiting to send';
 }
 
@@ -93,9 +94,13 @@ export function ClaimList({
               <Text style={[styles.meta, { color: colors.textMuted }]}>
                 {draft.policyLabel} · {formatZar(draft.payload.amountCents)}
               </Text>
-              {draft.lastError ? (
+              {draft.needsAttention && draft.lastError ? (
                 <Text style={[styles.meta, { color: colors.danger }]}>{draft.lastError}</Text>
-              ) : null}
+              ) : (
+                <Text style={[styles.meta, { color: colors.textMuted }]}>
+                  Saved on this device. It sends automatically when you're online.
+                </Text>
+              )}
               {draft.needsAttention ? (
                 <View style={styles.actions}>
                   {onRetryDraft ? (

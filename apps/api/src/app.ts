@@ -72,6 +72,8 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   await app.register(cors, {
     origin:
       config.CORS_ORIGINS === '*' ? true : config.CORS_ORIGINS.split(',').map((o) => o.trim()),
+    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['authorization', 'content-type', 'idempotency-key', CORRELATION_HEADER],
     exposedHeaders: [CORRELATION_HEADER, 'idempotent-replayed'],
   });
   await app.register(rateLimit, {

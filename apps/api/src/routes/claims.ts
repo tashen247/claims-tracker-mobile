@@ -31,7 +31,7 @@ import {
   type ClaimRow,
 } from '../db/schema';
 import { hashRequestBody } from '../lib/crypto';
-import { decodeCursor, encodeCursor } from '../lib/cursor';
+import { decodePageToken, encodePageToken } from '../lib/page-token';
 import { AppError, badRequest, conflict, forbidden, notFound } from '../lib/errors';
 
 const photoCountSql = sql<number>`(select count(*)::int from ${claimPhotos} where ${claimPhotos.claimId} = ${claims.id})`;
@@ -213,12 +213,12 @@ export const claimRoutes: FastifyPluginAsyncZod = async (app) => {
       },
     },
     async (request) => {
-      const { status, limit, cursor } = request.query;
+      const { status, limit, pageToken } = request.query;
       const filters: (SQL | undefined)[] = [visibilityFilter(request.user)];
       if (status) filters.push(eq(claims.status, status));
-      if (cursor) {
-        const decoded = decodeCursor(cursor);
-        if (!decoded) throw badRequest('Invalid cursor');
+      if (pageToken) {
+        const decoded = decodePageToken(pageToken);
+        if (!decoded) throw badRequest('Invalid pageToken');
         filters.push(
           or(
             lt(claims.createdAt, decoded.createdAt),
@@ -238,9 +238,9 @@ export const claimRoutes: FastifyPluginAsyncZod = async (app) => {
       const last = page.at(-1);
       return {
         items: page.map((r) => toClaim(r.claim, r.photoCount)),
-        nextCursor:
+        nextPageToken:
           rows.length > limit && last
-            ? encodeCursor({ createdAt: last.claim.createdAt, id: last.claim.id })
+            ? encodePageToken({ createdAt: last.claim.createdAt, id: last.claim.id })
             : null,
       };
     },

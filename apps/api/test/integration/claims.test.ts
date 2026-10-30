@@ -194,7 +194,7 @@ describe('GET /v1/claims', () => {
     expect(all.json().items).toHaveLength(3);
   });
 
-  it('filters by status and paginates with a cursor', async () => {
+  it('filters by status and paginates with a pageToken', async () => {
     for (let i = 0; i < 5; i += 1) {
       await submit(
         holder,
@@ -208,12 +208,12 @@ describe('GET /v1/claims', () => {
       headers: bearer(holder),
     });
     expect(page1.json().items).toHaveLength(2);
-    const cursor = page1.json().nextCursor as string;
-    expect(cursor).toBeTruthy();
+    const pageToken = page1.json().nextPageToken as string;
+    expect(pageToken).toBeTruthy();
 
     const page2 = await ctx.app.inject({
       method: 'GET',
-      url: `/v1/claims?limit=2&cursor=${cursor}`,
+      url: `/v1/claims?limit=2&pageToken=${pageToken}`,
       headers: bearer(holder),
     });
     const ids1 = page1.json().items.map((c: { id: string }) => c.id);
@@ -222,11 +222,11 @@ describe('GET /v1/claims', () => {
 
     const page3 = await ctx.app.inject({
       method: 'GET',
-      url: `/v1/claims?limit=2&cursor=${page2.json().nextCursor}`,
+      url: `/v1/claims?limit=2&pageToken=${page2.json().nextPageToken}`,
       headers: bearer(holder),
     });
     expect(page3.json().items).toHaveLength(1);
-    expect(page3.json().nextCursor).toBeNull();
+    expect(page3.json().nextPageToken).toBeNull();
 
     const filtered = await ctx.app.inject({
       method: 'GET',
@@ -235,12 +235,12 @@ describe('GET /v1/claims', () => {
     });
     expect(filtered.json().items).toHaveLength(0);
 
-    const badCursor = await ctx.app.inject({
+    const badPageToken = await ctx.app.inject({
       method: 'GET',
-      url: '/v1/claims?cursor=garbage',
+      url: '/v1/claims?pageToken=garbage',
       headers: bearer(holder),
     });
-    expect(badCursor.statusCode).toBe(400);
+    expect(badPageToken.statusCode).toBe(400);
   });
 });
 

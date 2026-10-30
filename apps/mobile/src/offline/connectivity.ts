@@ -1,5 +1,14 @@
 import NetInfo from '@react-native-community/netinfo';
 import { create } from 'zustand';
+import { API_URL } from '../config';
+
+// "Online" means our API is reachable, not just that the device has a network.
+NetInfo.configure({
+  reachabilityUrl: `${API_URL}/health`,
+  reachabilityTest: async (response) => response.status === 200,
+  reachabilityShortTimeout: 5_000,
+  reachabilityLongTimeout: 30_000,
+});
 
 interface ConnectivityState {
   isOnline: boolean;

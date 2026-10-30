@@ -4,6 +4,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 
 jest.mock('@react-native-community/netinfo', () => ({
+  configure: jest.fn(),
   addEventListener: jest.fn(() => jest.fn()),
   fetch: jest.fn(() => Promise.resolve({ isConnected: true, isInternetReachable: true })),
 }));

@@ -164,7 +164,8 @@ export default function ClaimDetailScreen() {
       {role === 'assessor' ? (
         <>
           <SectionTitle>Assessment</SectionTitle>
-          <AssessorPanel claim={claim} />
+          {/* Remount on status change so the selection resets to a valid next step. */}
+          <AssessorPanel key={claim.status} claim={claim} />
         </>
       ) : null}
 

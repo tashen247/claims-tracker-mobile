@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { CLAIM_STATUSES, CLAIM_STATUS_LABELS, type ClaimStatus } from '@claims/shared';
 import { useClaims } from '@/api/queries';
 import { ChipSelect } from '@/components/ui';
@@ -16,12 +16,7 @@ export default function ReviewQueueScreen() {
 
   return (
     <View style={styles.flex}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filters}
-        contentContainerStyle={styles.filtersContent}
-      >
+      <View style={styles.filters}>
         <ChipSelect<Filter>
           label="Filter by status"
           value={filter}
@@ -31,7 +26,7 @@ export default function ReviewQueueScreen() {
             { value: 'all', label: 'All' },
           ]}
         />
-      </ScrollView>
+      </View>
       <ClaimList
         claims={claims}
         loading={query.isLoading}
@@ -53,6 +48,5 @@ export default function ReviewQueueScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  filters: { flexGrow: 0 },
-  filtersContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  filters: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, marginBottom: -spacing.md },
 });

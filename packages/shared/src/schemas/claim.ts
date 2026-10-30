@@ -81,13 +81,13 @@ export type ClaimDetail = z.infer<typeof claimDetailSchema>;
 export const listClaimsQuerySchema = z.object({
   status: claimStatusSchema.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  cursor: z.string().max(200).optional(),
+  pageToken: z.string().max(200).optional(),
 });
 export type ListClaimsQuery = z.infer<typeof listClaimsQuerySchema>;
 
 export const claimListResponseSchema = z.object({
   items: z.array(claimSchema),
-  nextCursor: z.string().nullable(),
+  nextPageToken: z.string().nullable(),
 });
 export type ClaimListResponse = z.infer<typeof claimListResponseSchema>;
 

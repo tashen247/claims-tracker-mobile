@@ -66,8 +66,8 @@ const DESCRIPTIONS: Record<PolicyType, string[]> = {
     'ECU fault code P0300 with misfires, dealer recommends injector replacement.',
   ],
   funeral: [
-    'Death of main member at Livingstone Hospital, Gqeberha. Death certificate attached.',
-    'Death of a dependant (mother) in Polokwane; funeral arranged for Saturday.',
+    'Death of a dependant (mother) at Livingstone Hospital, Gqeberha. Death certificate attached.',
+    'Death of a dependant (father) in Polokwane; funeral arranged for Saturday.',
     'Death of a child dependant; BI-1663 and death certificate uploaded.',
     'Death of spouse after a long illness at Chris Hani Baragwanath Hospital.',
   ],
@@ -81,7 +81,7 @@ const DESCRIPTIONS: Record<PolicyType, string[]> = {
 };
 
 const ASSESSOR_NOTES: Partial<Record<ClaimStatus, string[]>> = {
-  in_review: ['Assigned for assessment.', 'Documents received, reviewing workshop quote.'],
+  in_review: ['Assigned for assessment.', 'Documents received and under review.'],
   more_info_needed: [
     'Please upload the workshop job card and service history.',
     'Please provide a certified copy of the death certificate.',
@@ -134,6 +134,7 @@ export async function seed(
   await db.execute(
     sql`truncate table claim_status_events, claim_photos, claims, policies, push_tokens, refresh_tokens, users restart identity cascade`,
   );
+  await db.execute(sql`alter sequence claim_reference_seq restart with 1001`);
 
   const insertedHolders = await db
     .insert(users)
@@ -198,7 +199,11 @@ export async function seed(
     claimRows.push({
       policyId: policy.id,
       userId: policy.userId,
-      type: pick(rand, CLAIM_TYPES_BY_POLICY[policy.type]),
+      // The seeded claimant is the main member, so funeral claims are for dependants.
+      type:
+        policy.type === 'funeral'
+          ? ('death_of_dependant' as const)
+          : pick(rand, CLAIM_TYPES_BY_POLICY[policy.type]),
       incidentDate: incident.toISOString().slice(0, 10),
       description: pick(rand, DESCRIPTIONS[policy.type]),
       amountCents: Math.round((min + rand() * (max - min)) / 100) * 100,

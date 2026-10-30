@@ -1,8 +1,9 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import pg from 'pg';
 import { loadConfig } from '../config';
-import { createDatabase } from './client';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -14,12 +15,25 @@ export function migrationsFolder(): string {
   );
 }
 
+/** Arbitrary constant identifying the migration lock. */
+const MIGRATION_LOCK_ID = 727_274_001;
+
+/**
+ * Applies pending migrations while holding a Postgres advisory lock, so several API tasks
+ * starting at once (e.g. an ECS rolling deploy) apply them exactly once.
+ */
 export async function runMigrations(databaseUrl: string, ssl = false): Promise<void> {
-  const handle = createDatabase(databaseUrl, { ssl, max: 1 });
+  const client = new pg.Client({
+    connectionString: databaseUrl,
+    ssl: ssl ? { rejectUnauthorized: false } : undefined,
+  });
+  await client.connect();
   try {
-    await migrate(handle.db, { migrationsFolder: migrationsFolder() });
+    await client.query('select pg_advisory_lock($1)', [MIGRATION_LOCK_ID]);
+    await migrate(drizzle(client), { migrationsFolder: migrationsFolder() });
   } finally {
-    await handle.close();
+    await client.query('select pg_advisory_unlock($1)', [MIGRATION_LOCK_ID]).catch(() => undefined);
+    await client.end();
   }
 }
 
